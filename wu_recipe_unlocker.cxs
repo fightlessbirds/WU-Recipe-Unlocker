@@ -1,0 +1,58 @@
+Strict
+
+Import os
+Import brl.json
+
+#If HOST = "winnt"
+Global PATH_DELIMITER:= "\"
+#Else
+Global PATH_DELIMITER:= "/"
+#End
+
+Global recipesFilePath:String = "/home/jason/Dev/WU-Recipe-Unlocker/recipes"
+
+Function PrintHeader:Void()
+	Print("=================================")
+	Print("  Wurm Unlimited Recipe Unlocker ")
+	Print(" By fightlessbirds")   
+	Print("=================================")
+End
+
+Function GetRecipeFilePaths:String[]()
+	Local args:= AppArgs()
+	If args.Length <> 2
+		Print("ERROR: Please provide path to recipes")
+		ExitApp(1)
+	EndIf
+	recipesFilePath = args[1] + PATH_DELIMITER
+	If recipesFilePath[-2..-1] <> PATH_DELIMITER Then recipesFilePath += PATH_DELIMITER
+	Print("Discovering recipe files...")
+	Local fileNames:= LoadDir(recipesFilePath)
+	Print("Total recipes discovered: " + fileNames.Length)
+	Local filePaths:String[fileNames.Length]
+	For Local i:= 0 Until fileNames.Length
+		filePaths[i] = recipesFilePath + fileNames[i]
+	Next
+	Return filePaths
+End
+
+Function UnlockRecipes:Void(filePaths:String[])
+	DebugStop()
+	Print("Backing up recipe files...")
+	CopyDir(recipesFilePath + ".." + PATH_DELIMITER + "recipes", recipesFilePath + ".." + PATH_DELIMITER + "recipes_backup")
+	Print("Processing recipe files...")
+	For Local filePath:= EachIn filePaths
+		Local fileContent:= LoadString(filePath)
+		Local jsonObject:= JsonObject(New JsonParser(fileContent).ParseValue())
+		jsonObject.SetBool("known", True)
+		SaveString(jsonObject.ToJson(), filePath)
+	Next
+	Print("Completed unlocking recipes")
+End
+
+Function Main:Int()
+	PrintHeader()
+	UnlockRecipes(GetRecipeFilePaths())
+	
+	Return 0
+End
